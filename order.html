@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>El-Ashry Furniture</title>
+  <link rel="stylesheet" href="001.css">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body dir="ltr">
+
+  <!-- Navbar -->
+  <header>
+    <div class="logo">
+      <a href="index.html" ><img src="image/logo4.jpg" alt="El-Ashry Furniture Logo"></a>
+    </div>
+
+    <div class="menu-btn" id="menu-btn">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+
+    <nav id="menu">
+      <a href="index.html">Home</a>
+      <a href="about us.html">About Us</a>
+      <a href="categories.html">Categories</a>
+      <a href="support.html">Support</a>
+      <a href="order-ar.html"><img src="https://flagcdn.com/w20/eg.png" alt="Arabic" class="lang-flag">AR</a>
+    </nav>
+  </header>
+
+  <!-- Order Form -->
+<section class="order-form">
+  <h2>Order Product</h2>
+  <div class="form-container">
+    <form id="orderForm">
+      <!-- الاسم الكامل -->
+      <label for="name">Full Name</label>
+      <input type="text" id="name" name="name" placeholder="Enter your full name" required>
+
+      <!-- رقم الموبايل -->
+      <label for="phone">Phone Number</label>
+      <input type="tel" id="phone" name="phone" placeholder="01XXXXXXXXX" required>
+
+      <!-- اختيار الصنف -->
+      <label for="category">Product Category</label>
+      <select id="category" name="category" required>
+        <option value="">-- Select a Category --</option>
+        <option value="Bedroom">Bedroom</option>
+        <option value="Dining Table">Dining Table</option>
+        <option value="Accessories">Accessories</option>
+      </select>
+
+      <!-- اختيار الموديل (تظهر بعد اختيار الصنف) -->
+      <label for="product">Product / Model</label>
+      <select id="product" name="product" required disabled>
+        <option value="">-- Select a Product --</option>
+      </select>
+
+      <!-- العنوان -->
+      <label for="address">Address</label>
+      <textarea id="address" name="address" placeholder="Enter your full address" required></textarea>
+
+      <!-- ملاحظات إضافية -->
+      <label for="notes">Additional Notes</label>
+      <textarea id="notes" name="notes" placeholder="Write any extra details (optional)"></textarea>
+
+      <!-- زر الإرسال -->
+      <button type="submit" class="btn">Submit Order</button>
+    </form>
+
+    <!-- رسالة الاستجابة -->
+    <p id="responseMsg" style="margin-top:1rem; color:green;"></p>
+  </div>
+</section>
+
+<a href="support.html" class="floating-contact-btn">
+    <i class="fa-solid fa-headset"></i>
+</a>
+
+  <!-- Footer -->
+  <footer>
+    <p>&copy; 2025 El-Ashry Furniture. All rights reserved.</p>
+    <p>
+      <a href="#">Facebook</a> | 
+      <a href="#">Instagram</a> | 
+      <a href="#">WhatsApp</a>
+    </p>
+  </footer>
+
+  <script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC-GAsIIWjyI8b4Wki5qbbXHdP545RezDw",
+  authDomain: "el-ashry-furniture.firebaseapp.com",
+  projectId: "el-ashry-furniture",
+  storageBucket: "el-ashry-furniture.firebasestorage.app",
+  messagingSenderId: "565420099439",
+  appId: "1:565420099439:web:389d5351c3bce8accf8a9a",
+  measurementId: "G-E33S19ZN54"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const categorySelect = document.getElementById("category");
+const productSelect = document.getElementById("product");
+
+// الموديلات لكل صنف حسب الاتفاق
+const products = {
+  "Bedroom": ["Model 101","Model 102","Model 103","Model 104","Model 105","Model 106","Model 107","Model 108","Model 109","Model 110","Model 111","Model 112","Model 113","Model 114","Model 115"],
+  "Dining Table": ["Model D101","Model D102","Model D103","Model D104","Model D105","Model D106","Model D107","Model D108"],
+  "Accessories": ["Model A101","Model A102","Model A103","Model A104","Model A105","Model A106","Model A107","Model A108"]
+};
+
+// تحديث قائمة الموديلات عند اختيار الصنف
+categorySelect.addEventListener("change", () => {
+  const selectedCategory = categorySelect.value;
+  productSelect.innerHTML = '<option value="">-- Select a Product --</option>';
+
+  if (selectedCategory) {
+    productSelect.disabled = false;
+    products[selectedCategory].forEach(model => {
+      const option = document.createElement("option");
+      option.value = model;
+      option.textContent = model;
+      productSelect.appendChild(option);
+    });
+  } else {
+    productSelect.disabled = true;
+  }
+});
+
+// التعامل مع إرسال الفورم
+document.getElementById("orderForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const responseMsg = document.getElementById("responseMsg");
+
+  const data = {
+    name: form.name.value.trim(),
+    phone: form.phone.value.trim(),
+    category: form.category.value.trim(),
+    product: form.product.value.trim(),
+    address: form.address.value.trim(),
+    notes: form.notes.value.trim(),
+    date: new Date().toLocaleString()
+  };
+
+  // التحقق من البيانات الأساسية
+  if (data.phone === "" || data.product === "") {
+    responseMsg.style.color = "red";
+    responseMsg.textContent = "⚠ Please enter phone number and select a product.";
+    return;
+  }
+
+  const phoneRegex = /^(010|011|012|015)\d{8}$/;
+  if (!phoneRegex.test(data.phone)) {
+    responseMsg.style.color = "red";
+    responseMsg.textContent = "⚠ Invalid phone number, please check.";
+    return;
+  }
+
+  responseMsg.style.color = "black";
+  responseMsg.textContent = "⏳ Processing your order...";
+
+  try {
+    const q = query(
+      collection(db, "orders"),
+      where("phone", "==", data.phone),
+      where("product", "==", data.product)
+    );
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      responseMsg.style.color = "red";
+      responseMsg.textContent = "⚠ This order has already been submitted.";
+      return;
+    }
+
+    await addDoc(collection(db, "orders"), data);
+    responseMsg.style.color = "green";
+    responseMsg.textContent = "✅ Order submitted successfully!";
+    form.reset();
+    productSelect.disabled = true; // إعادة تعطل قائمة الموديلات
+  } catch (error) {
+    console.error("❌ Error submitting order:", error);
+    responseMsg.style.color = "red";
+    responseMsg.textContent = "⚠ Error occurred. Please try again.";
+  }
+});
+</script>
+
+
+  <script src="001.js"></script>
+
+</body>
+</html>
